@@ -1,0 +1,82 @@
+#![allow(clippy::needless_lifetimes)]
+
+use std::sync::Arc;
+// use fred::RedisClient;
+// use fred::owned::RedisClientOwned;
+// use fred::types::*;
+use bb8_redis::{ RedisConnectionManager, RedisPool, redis::Client};
+
+extern crate tokio;
+use tokio::prelude::*;
+
+#[derive(Clone)]
+pub struct Database {
+    pool: RedisPool,
+}
+
+impl Database {
+    pub fn new() -> Self {
+        let _host = "localhost";
+        let _port = 6379;
+        let client = Client::open("redis://localhost:6379").unwrap();
+        let mgr = RedisConnectionManager::new(client).unwrap();
+
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let builder = rtbb8_redis::bb8::Pool::builder().build_unchecked(mgr);
+
+        // let f = runtime.block_on(builder);
+
+        // let builder = tokio::runtime::Runtime::new().unwrap().block_on(Compat::new(Box::pin(async move {
+        //     let builder: Result<bb8_redis::bb8::Pool<RedisConnectionManager>, bb8_redis::redis::RedisError> = bb8_redis::bb8::Pool::builder().build(mgr).wait();
+        //     dbg!(&builder);
+        //     // let builder = bb8_redis::bb8::Pool::builder().build_unchecked(mgr);
+        //     return builder;
+        // })));
+
+        let pool = Arc::new(RedisPool::new(builder));
+        Database { pool }
+    }
+
+    // pub async fn start_pool(&mut self) {
+    //     dbg!(&self.pool);
+    //     if self.pool.is_none() {
+    //         println!("creating pool");
+    //         let client = Client::open("redis://localhost:6379").unwrap();
+    //         let mgr = RedisConnectionManager::new(client).unwrap();
+    //         let builder: bb8_redis::bb8::Pool<RedisConnectionManager> = bb8_redis::bb8::Pool::builder().build(mgr).compat().await.unwrap();
+    //         // let builder = bb8_redis::bb8::Pool::builder().build_unchecked(mgr);
+    //         let pool = Arc::new(RedisPool::new(builder));
+    //         self.pool = Some(pool);
+    //     }
+    //     dbg!(&self.pool);
+    // }
+
+    // pub async fn init_conn(&mut self) {
+    //     if self.conn.is_none() {
+    //         self.conn = Some(Arc::new(self.client.get_async_connection().compat().await.unwrap()));
+    //     }
+    // }
+    //
+    // pub async fn get_post(self, title: &str) -> String {
+    //     self.init_conn().await;
+    //     let t: Result<(_, String), redis::RedisError> = cmd.query_async(conn).compat().await;
+    //
+    //     if let Ok(t) = t {
+    //         t.1
+    //     } else {
+    //         "".into()
+    //     }
+    // }
+
+    pub async fn get_post<'a>(&'a mut self, title: &'a str) -> String {
+        // dbg!(self.pool);
+        // self.start_pool().await;
+        use futures::compat::Future01CompatExt;
+        use futures::compat::Compat;
+        let t: Result<String, bb8_redis::bb8::RunError<bb8_redis::redis::RedisError>> = self.pool.run(|conn| {
+            let mut cmd = bb8_redis::redis::cmd("GET");
+            cmd.arg(title).query_async(conn)
+        }).compat().await;
+        return t.unwrap();
+    }
+}
