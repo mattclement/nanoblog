@@ -20,7 +20,7 @@ pub fn res_404() -> http::Response<String> {
 }
 
 pub async fn get_post(cx: Context<db::Database>) -> http::Response<String> {
-    let mut client = cx.app_data().to_owned();
+    let client = cx.app_data().to_owned();
     let mut tera_ctx: tera::Context = tera::Context::new();
 
     let title: Result<String, _> = cx.param("post");

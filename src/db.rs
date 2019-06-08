@@ -1,15 +1,10 @@
+#![allow(clippy::needless_lifetimes)]
 extern crate tokio;
 extern crate r2d2_redis;
 
-use std::thread;
 use std::ops::Deref;
 
 use r2d2_redis::{redis, r2d2, RedisConnectionManager};
-use r2d2_redis::redis::Commands;
-
-
-// use diesel::pg::PgConnection;
-// use diesel::r2d2::ConnectionManager;
 
 use futures01::future::poll_fn;
 use r2d2::{Pool, PooledConnection};
@@ -29,7 +24,17 @@ pub struct Database {
 
 impl Database {
     pub fn new() -> Self {
-        let manager = RedisConnectionManager::new("redis://localhost").unwrap();
+        let host = std::env::var("REDIS_HOST");
+        let pw = std::env::var("REDIS_PASSWORD");
+
+        let conn_string = match (host, pw) {
+            (Ok(host), Err(_)) => redis::parse_redis_url(&format!("redis://{}", host)),
+            (Ok(host), Ok(pw)) => redis::parse_redis_url(&format!("redis://user:{}@{}", pw, host)),
+            (Err(_), Ok(pw)) => redis::parse_redis_url(&format!("redis://user:{}@localhost", pw)),
+            (_, _) => redis::parse_redis_url("redis://localhost"),
+        };
+
+        let manager = RedisConnectionManager::new(conn_string.unwrap()).unwrap();
         let pool = r2d2::Pool::builder()
             .build(manager)
             .unwrap();
@@ -50,20 +55,20 @@ impl Database {
         let pool = self.connection_pool.clone();
         // `tokio_threadpool::blocking` returns a `Poll` compatible with "old style" futures.
         // `poll_fn` converts this into a future, then
-        // `tokio::await` is used to convert the old style future to a `std::futures::Future`.
         // `f.take()` allows the borrow checker to be sure `f` is not moved into the inner closure
         // multiple times if `poll_fn` is called multple times.
         let mut f = Some(f);
         poll_fn(|| blocking(|| (f.take().unwrap())(
             pool.get().unwrap()
         ))
-        .map_err(|_| panic!("the threadpool shut down"))).compat().await
+        .map_err(|_| panic!("the threadpool shut down")))
+        .compat().await
         .expect("Error running async database task.")
     }
 
     pub async fn get_post(self, title: String) -> String {
         self.run(move |conn| {
             redis::cmd("GET").arg(title).query::<String>(conn.deref())
-        }).await.unwrap_or("".into())
+        }).await.unwrap_or_else(|_| "".into())
     }
 }
