@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nanoblog
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: 80
+  selector:
+    app: nanoblog
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nanoblog
+  labels:
+    app: nanoblog
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nanoblog
+  template:
+    metadata:
+      labels:
+        app: nanoblog
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "80"
+    spec:
+      containers:
+        - name: nanoblog
+          image: mclement/nanoblog:0.1.1
+          ports:
+            - containerPort: 80
+          env:
+            - name: REDIS_HOST
+              value: nanoblog-redis-master
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nanoblog-redis
+                  key: "redis-password"

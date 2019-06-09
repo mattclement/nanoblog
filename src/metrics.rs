@@ -1,4 +1,4 @@
-use prometheus::{Encoder, HistogramVec, TextEncoder};
+use prometheus::{Encoder, HistogramVec, TextEncoder, IntCounterVec};
 
 use futures::future::BoxFuture;
 use futures::prelude::*;
@@ -8,12 +8,17 @@ use tide::{
 };
 
 lazy_static! {
-    static ref HTTP_REQ_HISTOGRAM: HistogramVec = register_histogram_vec!(
+    static ref LATENCY: HistogramVec = register_histogram_vec!(
         "http_request_duration_seconds",
         "The HTTP request latencies in seconds.",
         &["handler"]
-    )
-    .unwrap();
+    ).unwrap();
+
+    static ref RES_STATUS: IntCounterVec = register_int_counter_vec!(
+        "http_res_status_by_handler",
+        "Handler HTTP status codes",
+        &["handler", "status_code"]
+    ).unwrap();
 }
 
 pub struct PromMetrics;
@@ -30,9 +35,11 @@ impl<Data: Send + Sync + 'static> Middleware<Data> for PromMetrics {
             let t = std::time::Instant::now();
             let path = cx.uri().path().to_owned();
             let res = next.run(cx).await;
+            let status = res.status();
+            RES_STATUS.with_label_values(&[&path])
             // Only store the time if it was a recognized route to prevent metrics DoS
-            if res.status() != 404 {
-                HTTP_REQ_HISTOGRAM
+            if status != 404 {
+                LATENCY
                     .with_label_values(&[&path])
                     .observe(t.elapsed().as_secs_f64());
             }
