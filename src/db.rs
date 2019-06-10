@@ -1,10 +1,10 @@
 #![allow(clippy::needless_lifetimes)]
-extern crate tokio;
 extern crate r2d2_redis;
+extern crate tokio;
 
 use std::ops::Deref;
 
-use r2d2_redis::{redis, r2d2, RedisConnectionManager};
+use r2d2_redis::{r2d2, redis, RedisConnectionManager};
 
 use futures01::future::poll_fn;
 use r2d2::{Pool, PooledConnection};
@@ -19,7 +19,7 @@ pub type Connection = PooledConnection<RedisConnectionManager>;
 /// way that does not block the tokio event loop.
 #[derive(Clone)]
 pub struct Database {
-    connection_pool: ConnectionPool
+    connection_pool: ConnectionPool,
 }
 
 impl Database {
@@ -35,9 +35,7 @@ impl Database {
         };
 
         let manager = RedisConnectionManager::new(conn_string.unwrap()).unwrap();
-        let pool = r2d2::Pool::builder()
-            .build(manager)
-            .unwrap();
+        let pool = r2d2::Pool::builder().build(manager).unwrap();
 
         Database {
             connection_pool: pool,
@@ -58,17 +56,18 @@ impl Database {
         // `f.take()` allows the borrow checker to be sure `f` is not moved into the inner closure
         // multiple times if `poll_fn` is called multple times.
         let mut f = Some(f);
-        poll_fn(|| blocking(|| (f.take().unwrap())(
-            pool.get().unwrap()
-        ))
-        .map_err(|_| panic!("the threadpool shut down")))
-        .compat().await
+        poll_fn(|| {
+            blocking(|| (f.take().unwrap())(pool.get().unwrap()))
+                .map_err(|_| panic!("the threadpool shut down"))
+        })
+        .compat()
+        .await
         .expect("Error running async database task.")
     }
 
     pub async fn get_post(self, title: String) -> String {
-        self.run(move |conn| {
-            redis::cmd("GET").arg(title).query::<String>(conn.deref())
-        }).await.unwrap_or_else(|_| "".into())
+        self.run(move |conn| redis::cmd("GET").arg(title).query::<String>(conn.deref()))
+            .await
+            .unwrap_or_else(|_| "".into())
     }
 }

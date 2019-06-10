@@ -14,7 +14,6 @@ mod db;
 mod metrics;
 mod posts;
 
-
 fn main() -> Result<(), std::io::Error> {
     let db = db::Database::new();
     let metrics = metrics::PromMetrics::default();
@@ -24,14 +23,16 @@ fn main() -> Result<(), std::io::Error> {
     thread::spawn(move || {
         let mut app = tide::App::new(());
         app.at("/metrics").get(metrics::report);
-        app.serve("0.0.0.0:8000");
+        let _ = app.serve("0.0.0.0:8000");
     });
 
     app.middleware(tide::middleware::RootLogger::new());
     app.middleware(metrics);
 
-    app.at("/_health").get(async move |_| format!("{}\n", env!("blog_version")));
+    app.at("/_health")
+        .get(async move |_| format!("{}\n", env!("CARGO_PKG_VERSION")));
     app.at("/posts").nest(posts::routes);
 
-    app.serve("0.0.0.0:80")
+    app.serve("0.0.0.0:80")?;
+    Ok(())
 }

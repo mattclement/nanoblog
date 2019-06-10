@@ -1,7 +1,0 @@
-dependencies:
-  - name: redis
-    version: 8.0.6
-    repository: "@stable"
-  - name: postgresql
-    version: 5.3.4
-    repository: "@stable"

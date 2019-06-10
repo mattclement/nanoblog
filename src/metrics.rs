@@ -1,8 +1,10 @@
-use prometheus::{Encoder, HistogramVec, TextEncoder, IntCounterVec};
+use prometheus::{Encoder, HistogramVec, IntCounterVec, TextEncoder};
 
 use futures::future::BoxFuture;
 use futures::prelude::*;
 use tide::{
+    http, Error,
+    EndpointResult,
     middleware::{Middleware, Next},
     Context, Response,
 };
@@ -12,13 +14,14 @@ lazy_static! {
         "http_request_duration_seconds",
         "The HTTP request latencies in seconds.",
         &["handler"]
-    ).unwrap();
-
+    )
+    .unwrap();
     static ref RES_STATUS: IntCounterVec = register_int_counter_vec!(
         "http_res_status_by_handler",
         "Handler HTTP status codes",
         &["handler", "status_code"]
-    ).unwrap();
+    )
+    .unwrap();
 }
 
 pub struct PromMetrics;
@@ -34,11 +37,15 @@ impl<Data: Send + Sync + 'static> Middleware<Data> for PromMetrics {
         FutureExt::boxed(async move {
             let t = std::time::Instant::now();
             let path = cx.uri().path().to_owned();
+
             let res = next.run(cx).await;
+
             let status = res.status();
             // Only store the info if it was a recognized route to prevent metrics DoS
             if status != 404 {
-                RES_STATUS.with_label_values(&[&path, &status.as_u16().to_string()]).inc();
+                RES_STATUS
+                    .with_label_values(&[&path, &status.as_u16().to_string()])
+                    .inc();
                 LATENCY
                     .with_label_values(&[&path])
                     .observe(t.elapsed().as_secs_f64());
@@ -48,10 +55,30 @@ impl<Data: Send + Sync + 'static> Middleware<Data> for PromMetrics {
     }
 }
 
-pub async fn report<T>(_: Context<T>) -> String {
+pub async fn report<T>(_: Context<T>) -> EndpointResult {
     let mut buf = vec![];
     let encoder = TextEncoder::new();
     let metrics_families = prometheus::gather();
-    encoder.encode(&metrics_families, &mut buf).unwrap();
-    String::from_utf8(buf).unwrap()
+    encoder.encode(&metrics_families, &mut buf)
+        .map_err(|_| {
+            let resp = http::Response::builder()
+                .status(http::StatusCode::INTERNAL_SERVER_ERROR)
+                .body("Error encoding metrics".into())
+                .expect("Failed to build metrics encoding error");
+            Error::from(resp)
+        })?;
+
+    let body = String::from_utf8(buf).map_err(|_| {
+        let resp = http::Response::builder()
+            .status(http::StatusCode::INTERNAL_SERVER_ERROR)
+            .body("Metrics are invalid UTF-8".into())
+            .expect("Failed to build metrics utf-8 error");
+        Error::from(resp)
+    })?;
+
+    let resp = http::Response::builder()
+        .status(http::StatusCode::OK)
+        .body(body.into())
+        .unwrap();
+    Ok(resp)
 }

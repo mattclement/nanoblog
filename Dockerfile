@@ -1,7 +1,6 @@
 FROM rustlang/rust:nightly as build
 RUN USER=root cargo new blog
 
-ENV blog_version 0.2.0
 WORKDIR /blog
 
 ADD Cargo.toml /blog/Cargo.toml
