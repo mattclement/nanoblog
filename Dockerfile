@@ -1,7 +1,7 @@
 FROM rustlang/rust:nightly as build
 RUN USER=root cargo new blog
 
-ENV blog_version 0.1.2
+ENV blog_version 0.2.0
 WORKDIR /blog
 
 ADD Cargo.toml /blog/Cargo.toml
@@ -19,5 +19,5 @@ COPY --from=build /blog/target/release/blog blog
 COPY templates templates
 
 WORKDIR /
-EXPOSE 80
+EXPOSE 80 8000
 CMD "/blog/blog"

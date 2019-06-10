@@ -36,9 +36,9 @@ impl<Data: Send + Sync + 'static> Middleware<Data> for PromMetrics {
             let path = cx.uri().path().to_owned();
             let res = next.run(cx).await;
             let status = res.status();
-            RES_STATUS.with_label_values(&[&path])
-            // Only store the time if it was a recognized route to prevent metrics DoS
+            // Only store the info if it was a recognized route to prevent metrics DoS
             if status != 404 {
+                RES_STATUS.with_label_values(&[&path, &status.as_u16().to_string()]).inc();
                 LATENCY
                     .with_label_values(&[&path])
                     .observe(t.elapsed().as_secs_f64());

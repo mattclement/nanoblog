@@ -31,8 +31,7 @@ fn main() -> Result<(), std::io::Error> {
     app.middleware(metrics);
 
     app.at("/_health").get(async move |_| format!("{}\n", env!("blog_version")));
-    app.at("/metrics").get(metrics::report);
     app.at("/posts").nest(posts::routes);
 
-    app.serve("0.0.0.0:8001")
+    app.serve("0.0.0.0:80")
 }
