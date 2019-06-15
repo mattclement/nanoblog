@@ -1,8 +1,8 @@
-replicaCount: 3
+replicaCount: 1
 
 image:
   repository: gcr.io/nanoblog/nanoblog
-  tag: 0.1.0
+  tag: 0.1.1
   pullPolicy: IfNotPresent
 
 redis:

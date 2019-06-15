@@ -1,16 +1,18 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width">
-    <title>Blog - {{ title }}</title>
-  </head>
-  <body>
+{% extends "base.html" %}
+
+{% block title %}Index{% endblock title %}
+
+{% block content %}
     <h1>
-      Blog - {{ title }}
+      Blog Index
     </h1>
-    <p>
-      {{ contents }}
-    </p>
-  </body>
-</html>
+    {%- if post_links -%}
+    {%- for link in post_links -%}
+    <ul>
+      <li>
+        <a href="/{{ link }}">{{ link }}</a>
+      </li>
+    </ul>
+    {% endfor -%}
+    {% endif -%}
+{% endblock content %}

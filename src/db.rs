@@ -70,4 +70,10 @@ impl Database {
             .await
             .unwrap_or_else(|_| "".into())
     }
+
+    pub async fn list_posts(self) -> Vec<String> {
+        self.run(move |conn| redis::cmd("KEYS").arg("*").query::<Vec<String>>(conn.deref()))
+            .await
+            .unwrap_or_else(|_| vec!())
+    }
 }

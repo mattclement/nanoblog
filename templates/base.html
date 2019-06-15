@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    {%- block head -%}
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <link rel="stylesheet" href="https://unpkg.com/normalize.css/normalize.css" type="text/css">
+    <link rel="stylesheet" href="https://unpkg.com/sakura.css/css/sakura-dark.css" type="text/css">
+    <title>Blog - {% block title %}{{ title | default(value="nullroute.host") }}{% endblock title %}</title>
+    {%- endblock head -%}
+  </head>
+  <body>
+    <div id="content">
+    {%- block content -%}
+    {%- endblock content -%}
+    </div>
+  </body>
+</html>

@@ -1,12 +1,9 @@
 #![feature(async_await)]
 #![feature(duration_float)]
 
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate prometheus;
-#[macro_use]
-extern crate tera;
+#[macro_use] extern crate lazy_static;
+#[macro_use] extern crate prometheus;
+#[macro_use] extern crate tera;
 
 use std::thread;
 
@@ -31,8 +28,8 @@ fn main() -> Result<(), std::io::Error> {
 
     app.at("/_health")
         .get(async move |_| format!("{}\n", env!("CARGO_PKG_VERSION")));
-    app.at("/posts").nest(posts::routes);
+    app.at("/").get(posts::list_posts);
+    app.at("/:post").get(posts::get_post);
 
-    app.serve("0.0.0.0:80")?;
-    Ok(())
+    app.serve("0.0.0.0:80")
 }
