@@ -1,18 +1,15 @@
 {% extends "base.html" %}
 
-{% block title %}Index{% endblock title %}
-
 {% block content %}
     <h1>
-      Blog Index
+      Posts
     </h1>
+    <hr />
     {%- if post_links -%}
     {%- for link in post_links -%}
-    <ul>
-      <li>
-        <a href="/{{ link }}">{{ link }}</a>
-      </li>
-    </ul>
+    <p>
+      <a href="/{{ link }}">{{ link }}</a>
+    </p>
     {% endfor -%}
     {% endif -%}
 {% endblock content %}
