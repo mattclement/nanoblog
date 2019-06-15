@@ -44,10 +44,14 @@ spec:
             httpGet:
               path: /_health
               port: http
+            initialDelaySeconds: 2
+            periodSeconds: 2
           readinessProbe:
             httpGet:
               port: http
               path: /_health
+            initialDelaySeconds: 2
+            periodSeconds: 2
           env:
             - name: REDIS_HOST
               value: {{ include "nanoblog.name" . }}-redis-master

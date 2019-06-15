@@ -11,8 +11,25 @@ use r2d2::{Pool, PooledConnection};
 
 use tokio_threadpool::blocking;
 
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Post {
+    pub title: String,
+    pub body: String,
+    pub date_created: String,
+    pub date_updated: Option<String>,
+}
+
+impl Default for Post {
+    fn default() -> Self {
+        Self {title: "".into(), body: "".into(), date_created: "".into(), date_updated: None}
+    }
+}
+
 pub type ConnectionPool = Pool<RedisConnectionManager>;
 pub type Connection = PooledConnection<RedisConnectionManager>;
+
 
 /// A database "repository", for running database workloads.
 /// Manages a connection pool and running blocking tasks in a
@@ -65,10 +82,11 @@ impl Database {
         .expect("Error running async database task.")
     }
 
-    pub async fn get_post(self, title: String) -> String {
+    pub async fn get_post(self, title: String) -> Result<Post, String> {
         self.run(move |conn| redis::cmd("GET").arg(title).query::<String>(conn.deref()))
             .await
-            .unwrap_or_else(|_| "".into())
+            .map_err(|e| e.to_string())
+            .map(|contents| serde_json::from_str::<Post>(&contents).unwrap_or_default())
     }
 
     pub async fn list_posts(self) -> Vec<String> {
