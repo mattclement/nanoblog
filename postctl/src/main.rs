@@ -51,7 +51,8 @@ fn main(args: Args) -> Result<(), std::io::Error> {
     let config: Config = serde_json::from_reader(buf_reader)?;
     eprintln!("{:?}\n{:?}", args, config);
 
-    let client = api::Client::new(config.host, config.token)?;
+    let client = api::Client::new(config.host, config.token)
+        .map_err(|_| std::io::Error::from(std::io::ErrorKind::ConnectionRefused))?;
 
     match args {
         Args::List {verbose} => {
