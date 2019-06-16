@@ -28,11 +28,11 @@ RUN set -eux; \
         ; \
     rm -rf /var/lib/apt/lists/*;
 
-RUN USER=root cargo new blog
+RUN USER=root cargo new nanoblog
 
-WORKDIR /blog
+WORKDIR /nanoblog
 
-ADD Cargo.toml /blog/Cargo.toml
+ADD Cargo.toml /nanoblog/Cargo.toml
 RUN cargo build --release
 RUN rm src/*.rs
 
@@ -42,10 +42,10 @@ RUN cargo build --release
 
 FROM ubuntu:rolling
 
-WORKDIR /blog
-COPY --from=build /blog/target/release/blog blog
+WORKDIR /nanoblog
+COPY --from=build /nanoblog/target/release/nanoblog nanoblog
 COPY templates templates
 
 WORKDIR /
 EXPOSE 80 8000
-CMD "/blog/blog"
+CMD "/nanoblog/nanoblog"

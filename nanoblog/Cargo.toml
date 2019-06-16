@@ -1,5 +1,5 @@
 [package]
-name = "blog"
+name = "nanoblog"
 version = "0.1.0"
 authors = ["Matt Clement <m@nullroute.host>"]
 edition = "2018"
