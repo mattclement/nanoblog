@@ -82,16 +82,40 @@ impl Database {
         .expect("Error running async database task.")
     }
 
+    /// Verify whether the bearer token exists.
+    pub async fn validate_token(self, token: String) -> bool {
+        let exists = self.run(move |conn| {
+            redis::cmd("SISMEMBER")
+                .arg("bearer_tokens")
+                .arg(token)
+                .query::<bool>(conn.deref())
+        })
+        .await;
+
+        match exists {
+            Err(_) => false,
+            Ok(x) => x
+        }
+    }
+
     pub async fn get_post(self, title: String) -> Result<Post, String> {
-        self.run(move |conn| redis::cmd("GET").arg(title).query::<String>(conn.deref()))
-            .await
-            .map_err(|e| e.to_string())
-            .map(|contents| serde_json::from_str::<Post>(&contents).unwrap_or_default())
+        self.run(move |conn| {
+            redis::cmd("GET")
+                .arg(title)
+                .query::<String>(conn.deref())
+        })
+        .await
+        .map_err(|e| e.to_string())
+        .map(|contents| serde_json::from_str::<Post>(&contents).unwrap_or_default())
     }
 
     pub async fn list_posts(self) -> Vec<String> {
-        self.run(move |conn| redis::cmd("KEYS").arg("*").query::<Vec<String>>(conn.deref()))
-            .await
-            .unwrap_or_else(|_| vec!())
+        self.run(move |conn| {
+            redis::cmd("KEYS")
+                .arg("*")
+                .query::<Vec<String>>(conn.deref())
+        })
+        .await
+        .unwrap_or_else(|_| vec!())
     }
 }

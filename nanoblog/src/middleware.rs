@@ -9,6 +9,8 @@ use tide::{
     Context, Response,
 };
 
+use crate::db::Database;
+
 lazy_static! {
     static ref LATENCY: HistogramVec = register_histogram_vec!(
         "http_request_duration_seconds",
@@ -32,8 +34,8 @@ impl Default for PromMetrics {
     }
 }
 
-impl<Data: Send + Sync + 'static> Middleware<Data> for PromMetrics {
-    fn handle<'a>(&'a self, cx: Context<Data>, next: Next<'a, Data>) -> BoxFuture<'a, Response> {
+impl<T: Send + Sync + 'static> Middleware<T> for PromMetrics {
+    fn handle<'a>(&'a self, cx: Context<T>, next: Next<'a, T>) -> BoxFuture<'a, Response> {
         FutureExt::boxed(async move {
             let t = std::time::Instant::now();
             let path = cx.uri().path().to_owned();
@@ -81,4 +83,53 @@ pub async fn report<T>(_: Context<T>) -> EndpointResult {
         .body(body.into())
         .unwrap();
     Ok(resp)
+}
+
+
+pub struct BearerAuth {
+    pub db: Database
+}
+
+impl Default for BearerAuth {
+    fn default() -> Self {
+        Self {
+            db: Database::new(),
+        }
+    }
+}
+
+
+impl<T: Send + Sync + 'static> Middleware<T> for BearerAuth {
+    fn handle<'a>(&'a self, cx: Context<T>, next: Next<'a, T>) -> BoxFuture<'a, Response> {
+        FutureExt::boxed(async move {
+            let path = cx.uri();
+            if !path.path().starts_with("/api") {
+                return next.run(cx).await
+            }
+
+            let headers = cx.headers();
+            let authz = headers.get(http::header::AUTHORIZATION);
+
+            if let Some(val) = authz {
+                let val = val.to_str().unwrap_or("");
+                if !val.starts_with("Bearer ") {
+                    return http::Response::builder()
+                        .status(http::StatusCode::UNAUTHORIZED)
+                        .header(http::header::CONTENT_TYPE, "text/plain; charset=utf-8")
+                        .body("Invalid bearer token.".into())
+                        .unwrap();
+                }
+                let token = val.replace("Bearer ", "");
+                if !self.db.clone().validate_token(token).await {
+                    return http::Response::builder()
+                        .status(http::StatusCode::UNAUTHORIZED)
+                        .header(http::header::CONTENT_TYPE, "text/plain; charset=utf-8")
+                        .body("Invalid bearer token.".into())
+                        .unwrap();
+                }
+            }
+
+            next.run(cx).await
+        })
+    }
 }
