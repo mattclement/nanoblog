@@ -2,9 +2,11 @@
 extern crate r2d2_redis;
 extern crate tokio;
 
+use std::collections::HashMap;
 use std::ops::Deref;
 
 use r2d2_redis::{r2d2, redis, RedisConnectionManager};
+use crate::db::r2d2_redis::redis::Commands;
 
 use futures01::future::poll_fn;
 use r2d2::{Pool, PooledConnection};
@@ -100,22 +102,19 @@ impl Database {
 
     pub async fn get_post(self, title: String) -> Result<Post, String> {
         self.run(move |conn| {
-            redis::cmd("GET")
-                .arg(title)
-                .query::<String>(conn.deref())
+            let x: r2d2_redis::redis::RedisResult<String> = conn.get(title);
+            x
         })
         .await
         .map_err(|e| e.to_string())
         .map(|contents| serde_json::from_str::<Post>(&contents).unwrap_or_default())
     }
 
-    pub async fn list_posts(self) -> Vec<String> {
+    pub async fn list_posts(self) -> HashMap<String, String> {
         self.run(move |conn| {
-            redis::cmd("KEYS")
-                .arg("*")
-                .query::<Vec<String>>(conn.deref())
+            conn.hgetall("posts")
         })
         .await
-        .unwrap_or_else(|_| vec!())
+        .unwrap_or_default()
     }
 }

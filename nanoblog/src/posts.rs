@@ -64,7 +64,7 @@ fn render_markdown(contents: &str) -> String {
 pub async fn list_posts(cx: Context<db::Database>) -> EndpointResult {
     let client = cx.app_data().to_owned();
     let mut tera_ctx: tera::Context = tera::Context::new();
-    let contents: Vec<String> = client.list_posts().await;
+    let contents = client.list_posts().await;
     tera_ctx.insert("post_links", &contents);
     render(INDEX, tera_ctx)
 }
