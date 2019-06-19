@@ -50,15 +50,18 @@ fn main(args: Args) -> Result<(), std::io::Error> {
     let config_file = File::open("/home/mclement/.config/blogctl/config.json")?;
     let buf_reader = BufReader::new(config_file);
     let config: Config = serde_json::from_reader(buf_reader)?;
-    eprintln!("{:?}\n{:?}", args, config);
 
     let client = api::Client::new(config.host, config.token)
         .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
     match args {
         Args::List {verbose} => {
-            let posts = client.list(verbose)?;
-            println!("{:?}", posts);
+            let posts = client
+                .list(verbose)
+                .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+            for post in posts {
+                println!("{}", post);
+            }
         },
         Args::Publish {dry_run, diff, post} => {
             let mut buf = String::new();
