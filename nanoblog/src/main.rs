@@ -7,6 +7,7 @@
 
 use std::thread;
 
+mod api;
 mod db;
 mod middleware;
 mod posts;
@@ -29,9 +30,15 @@ fn main() -> Result<(), std::io::Error> {
     app.middleware(bearer_protection);
 
     app.at("/api").nest(|router| {
+        router.at("/ping").get(async move |_| "OK\n");
+        router.at("/posts").get(api::list_posts);
+        router.at("/posts/:post").get(api::get_raw_post);
+        router.at("/posts/:post").post(api::upsert_post);
     });
+
     app.at("/_health")
         .get(async move |_| format!("{}\n", env!("CARGO_PKG_VERSION")));
+
     app.at("/").get(posts::list_posts);
     app.at("/:post").get(posts::get_post);
 

@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io::BufReader;
 use std::io::prelude::*;
+use std::io::{Error, ErrorKind};
 use std::path::PathBuf;
 
 mod api;
@@ -52,7 +53,7 @@ fn main(args: Args) -> Result<(), std::io::Error> {
     eprintln!("{:?}\n{:?}", args, config);
 
     let client = api::Client::new(config.host, config.token)
-        .map_err(|_| std::io::Error::from(std::io::ErrorKind::ConnectionRefused))?;
+        .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
     match args {
         Args::List {verbose} => {

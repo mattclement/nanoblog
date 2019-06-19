@@ -24,6 +24,12 @@ lazy_static! {
         &["handler", "status_code"]
     )
     .unwrap();
+
+    static ref UNAUTHORIZED: http::Response<String> = http::Response::builder()
+        .status(http::StatusCode::UNAUTHORIZED)
+        .header(http::header::CONTENT_TYPE, "text/plain; charset=utf-8")
+        .body("Invalid bearer token.".into())
+        .unwrap();
 }
 
 pub struct PromMetrics;
@@ -98,6 +104,13 @@ impl Default for BearerAuth {
     }
 }
 
+fn unauthorized() -> http::Response<http_service::Body> {
+    http::Response::builder()
+        .status(http::StatusCode::UNAUTHORIZED)
+        .header(http::header::CONTENT_TYPE, "text/plain; charset=utf-8")
+        .body("Invalid bearer token.\n".into())
+        .unwrap()
+}
 
 impl<T: Send + Sync + 'static> Middleware<T> for BearerAuth {
     fn handle<'a>(&'a self, cx: Context<T>, next: Next<'a, T>) -> BoxFuture<'a, Response> {
@@ -113,23 +126,17 @@ impl<T: Send + Sync + 'static> Middleware<T> for BearerAuth {
             if let Some(val) = authz {
                 let val = val.to_str().unwrap_or("");
                 if !val.starts_with("Bearer ") {
-                    return http::Response::builder()
-                        .status(http::StatusCode::UNAUTHORIZED)
-                        .header(http::header::CONTENT_TYPE, "text/plain; charset=utf-8")
-                        .body("Invalid bearer token.".into())
-                        .unwrap();
+                    return unauthorized();
                 }
                 let token = val.replace("Bearer ", "");
                 if !self.db.clone().validate_token(token).await {
-                    return http::Response::builder()
-                        .status(http::StatusCode::UNAUTHORIZED)
-                        .header(http::header::CONTENT_TYPE, "text/plain; charset=utf-8")
-                        .body("Invalid bearer token.".into())
-                        .unwrap();
+                    return unauthorized();
                 }
+                next.run(cx).await
+            } else {
+                return unauthorized();
             }
 
-            next.run(cx).await
         })
     }
 }

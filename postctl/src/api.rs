@@ -11,6 +11,7 @@ impl Client {
         let client = reqwest::Client::builder()
             .gzip(true)
             .timeout(Duration::from_secs(3))
+            .danger_accept_invalid_certs(true)
             .build().unwrap();
 
         let c = Self { host, token, client };
