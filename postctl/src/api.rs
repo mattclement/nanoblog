@@ -1,4 +1,3 @@
-use std::io::{Error, ErrorKind};
 use std::collections::HashMap;
 
 pub struct Client {
@@ -51,7 +50,7 @@ impl Client {
         self.get("posts")
             .map_err(|e| e.to_string())
             .map(|mut b| {
-                let kv: ListResponse = b.json().expect("Bad json returned");
+                let kv: ListResponse = b.json().expect("Bad JSON returned");
                 kv.into_iter()
                     .map(|(title, date)| {
                         if verbose {

@@ -45,12 +45,19 @@ enum Args {
 }
 
 
-#[paw::main]
-fn main(args: Args) -> Result<(), std::io::Error> {
-    let config_file = File::open("/home/mclement/.config/blogctl/config.json")?;
+fn load_config() -> Result<Config, std::io::Error> {
+    let home = std::env::var("HOME").expect("No home directory detectable, wat");
+    let path = format!("{}/.config/blogctl/config.json", home);
+    let config_file = File::open(path)?;
     let buf_reader = BufReader::new(config_file);
     let config: Config = serde_json::from_reader(buf_reader)?;
+    Ok(config)
+}
 
+
+#[paw::main]
+fn main(args: Args) -> Result<(), std::io::Error> {
+    let config = load_config()?;
     let client = api::Client::new(config.host, config.token)
         .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
