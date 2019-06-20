@@ -117,4 +117,10 @@ impl Database {
         .await
         .unwrap_or_default()
     }
+
+    pub async fn save_post(self, post: Post) -> Result<(), String> {
+        let current_post = self.get_post(post.title).await?;
+
+        Ok(())
+    }
 }

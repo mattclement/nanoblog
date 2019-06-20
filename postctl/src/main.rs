@@ -35,9 +35,9 @@ enum Args {
         #[structopt(name = "file")]
         post: PathBuf,
     },
-    #[structopt(name = "remove")]
-    /// revoke published post
-    Revoke {
+    #[structopt(name = "unpublish")]
+    /// Unpublish published post
+    Unpublish {
         #[structopt(long = "dry-run")]
         dry_run: bool,
         post: String,
@@ -64,7 +64,7 @@ fn main(args: Args) -> Result<(), std::io::Error> {
     match args {
         Args::List {verbose} => {
             let posts = client
-                .list(verbose)
+                .list_posts(verbose)
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
             for post in posts {
                 println!("{}", post);
@@ -74,11 +74,11 @@ fn main(args: Args) -> Result<(), std::io::Error> {
             let mut buf = String::new();
             let mut file = File::open(post)?;
             file.read_to_string(&mut buf)?;
-            let diff = client.publish(dry_run, diff, &buf)?;
-            println!("{:?}", diff);
+            let diff = client.publish(&buf, dry_run, diff)?;
+            println!("{}", diff);
         },
-        Args::Revoke {dry_run, post} => {
-            client.revoke(dry_run, &post)?;
+        Args::Unpublish {dry_run, post} => {
+            client.unpublish(&post, dry_run)?;
         },
     };
     Ok(())

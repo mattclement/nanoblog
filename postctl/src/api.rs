@@ -46,7 +46,7 @@ impl Client {
         }
     }
 
-    pub fn list(&self, verbose: bool) -> Result<Vec<String>, String> {
+    pub fn list_posts(&self, verbose: bool) -> Result<Vec<String>, String> {
         self.get("posts")
             .map_err(|e| e.to_string())
             .map(|mut b| {
@@ -63,11 +63,12 @@ impl Client {
             })
     }
 
-    pub fn publish(&self, dry_run: bool, diff: bool, post: &str) -> Result<String, std::io::Error> {
+    pub fn publish(&self, post: &str, dry_run: bool, diff: bool) -> Result<String, std::io::Error> {
+        println!("{}", post);
         Ok(String::new())
     }
 
-    pub fn revoke(&self, dry_run: bool, post: &str) -> Result<(), std::io::Error> {
+    pub fn unpublish(&self, post: &str, dry_run: bool) -> Result<(), std::io::Error> {
         Ok(())
     }
 }
