@@ -100,7 +100,7 @@ impl Database {
         }
     }
 
-    pub async fn get_post(self, title: String) -> Result<Post, String> {
+    pub async fn get_post(&self, title: String) -> Result<Post, String> {
         self.run(move |conn| {
             let x: r2d2_redis::redis::RedisResult<String> = conn.get(title);
             x
@@ -110,7 +110,7 @@ impl Database {
         .map(|contents| serde_json::from_str::<Post>(&contents).unwrap_or_default())
     }
 
-    pub async fn list_posts(self) -> HashMap<String, String> {
+    pub async fn list_posts(&self) -> HashMap<String, String> {
         self.run(move |conn| {
             conn.hgetall("posts")
         })
@@ -118,9 +118,15 @@ impl Database {
         .unwrap_or_default()
     }
 
-    pub async fn save_post(self, post: Post) -> Result<(), String> {
-        let current_post = self.get_post(post.title).await?;
-
-        Ok(())
+    pub async fn save_post(&self, post: Post) -> Result<(), String> {
+        self.run(move |conn| {
+            conn.set::<String, String, String>(
+                post.title.clone(),
+                serde_json::to_string(&post).unwrap_or_default()
+            )
+        })
+        .await
+        .map_err(|e| e.to_string())
+        .map(|_| Ok(()))?
     }
 }

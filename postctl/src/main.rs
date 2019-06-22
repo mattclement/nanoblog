@@ -23,6 +23,11 @@ enum Args {
         #[structopt(short = "v")]
         verbose: bool,
     },
+    #[structopt(name = "get")]
+    /// Get single post
+    Get {
+        title: String,
+    },
     #[structopt(name = "publish")]
     /// publish a new post
     Publish {
@@ -31,6 +36,8 @@ enum Args {
         /// Show diff output. Use with --dry-run to preview changes.
         #[structopt(long = "diff")]
         diff: bool,
+
+        title: String,
 
         #[structopt(name = "file")]
         post: PathBuf,
@@ -58,6 +65,7 @@ fn load_config() -> Result<Config, std::io::Error> {
 #[paw::main]
 fn main(args: Args) -> Result<(), std::io::Error> {
     let config = load_config()?;
+
     let client = api::Client::new(config.host, config.token)
         .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
 
@@ -70,12 +78,17 @@ fn main(args: Args) -> Result<(), std::io::Error> {
                 println!("{}", post);
             }
         },
-        Args::Publish {dry_run, diff, post} => {
+        Args::Get {title} => {
+            let post = client.get_post(&title)
+                .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+            println!("{}", post);
+        },
+        Args::Publish {title, post, dry_run, diff} => {
             let mut buf = String::new();
             let mut file = File::open(post)?;
             file.read_to_string(&mut buf)?;
-            let diff = client.publish(&buf, dry_run, diff)?;
-            println!("{}", diff);
+            client.publish(&title, &buf, dry_run, diff)
+                .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
         },
         Args::Unpublish {dry_run, post} => {
             client.unpublish(&post, dry_run)?;

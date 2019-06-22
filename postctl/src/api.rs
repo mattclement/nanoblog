@@ -1,4 +1,7 @@
 use std::collections::HashMap;
+use difference::Changeset;
+extern crate nanoblog;
+use nanoblog::Post;
 
 pub struct Client {
     host: String,
@@ -36,6 +39,25 @@ impl Client {
             .send()
     }
 
+    fn post(&self, path: &str, body: String) -> reqwest::Result<reqwest::Response> {
+        let url = self.url_for_path(path);
+
+        self.client.post(&url)
+            .bearer_auth(&self.token)
+            .header(reqwest::header::CONTENT_TYPE, "text/plain")
+            .body(body)
+            .send()
+    }
+
+    pub fn get_post(&self, post: &str) -> Result<String, String> {
+        self.get(&format!("posts/{}", post))
+            .map_err(|e| e.to_string())
+            .map(|mut r| {
+                let p: Post = r.json().unwrap_or_default();
+                Ok(p.body)
+            })?
+    }
+
     fn check(&self) -> Result<(), String> {
         let res = self.get("ping")
             .map_err(|e| e.to_string())?;
@@ -63,9 +85,20 @@ impl Client {
             })
     }
 
-    pub fn publish(&self, post: &str, dry_run: bool, diff: bool) -> Result<String, std::io::Error> {
-        println!("{}", post);
-        Ok(String::new())
+    pub fn publish(&self, title: &str, post: &str, dry_run: bool, diff: bool) -> Result<(), String> {
+        if diff {
+            let current_post = self.get_post(title).unwrap_or_default();
+            let changeset = Changeset::new(&current_post, post, "\n");
+            println!("{}", changeset);
+        }
+        if dry_run {
+            print!("Dry run: Not saving");
+            return Ok(());
+        }
+
+        self.post(&format!("posts/{}", title), post.into())
+            .map_err(|e| e.to_string())?;
+        Ok(())
     }
 
     pub fn unpublish(&self, post: &str, dry_run: bool) -> Result<(), std::io::Error> {

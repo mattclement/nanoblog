@@ -12,6 +12,7 @@ mod db;
 mod middleware;
 mod posts;
 
+
 fn main() -> Result<(), std::io::Error> {
     let db = db::Database::new();
     let metrics = middleware::PromMetrics::default();

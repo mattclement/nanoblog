@@ -38,28 +38,24 @@ pub async fn get_raw_post(cx: Context<db::Database>) -> EndpointResult {
         })?
 }
 
-pub async fn upsert_post(cx: Context<db::Database>) -> EndpointResult {
+pub async fn upsert_post(mut cx: Context<db::Database>) -> EndpointResult {
     let client = cx.app_data().to_owned();
-    let title = cx.param("post").client_err()?;
+    let title: String = cx.param("post").client_err()?;
     let body = cx.body_string().await.client_err()?;
 
-    let post: db::Post = match client.get_post(title).await {
-        Ok(p) => {
-            p.date_updated = Some("now".into());
-            p
-        },
-        Err(_) => {
-            db::Post {
-                title,
-                body,
-                date_created: "now".into(),
-                date_updated: None,
-            }
-        }
+    let mut post = db::Post {
+        title: title.clone(),
+        body,
+        date_created: "now".into(),
+        date_updated: None,
     };
 
-    client
-        .save_post(post)
+    if let Ok(p) = client.get_post(title.clone()).await {
+        post.date_created = p.date_created;
+        post.date_updated = Some("now".into());
+    }
+    
+    client.save_post(post)
         .await
         .map(|p| {
             let body = serde_json::to_string(&p)
@@ -77,4 +73,5 @@ pub async fn upsert_post(cx: Context<db::Database>) -> EndpointResult {
                 .expect("Error generating error response");
             Error::from(res)
         })?
+    // TODO: add the post to the entry list?
 }

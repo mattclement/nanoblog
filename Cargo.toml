@@ -1,6 +1,5 @@
 [workspace]
-
 members = [
     "postctl",
-    "nanoblog",
+    "nanoblog"
 ]
