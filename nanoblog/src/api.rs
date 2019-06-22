@@ -38,10 +38,15 @@ pub async fn get_raw_post(cx: Context<db::Database>) -> EndpointResult {
         })?
 }
 
+
 pub async fn upsert_post(mut cx: Context<db::Database>) -> EndpointResult {
     let client = cx.app_data().to_owned();
     let title: String = cx.param("post").client_err()?;
     let body = cx.body_string().await.client_err()?;
+
+    let draft = cx.uri().query()
+        .unwrap_or_default()
+        .contains("draft=true");
 
     let mut post = db::Post {
         title: title.clone(),
@@ -54,8 +59,8 @@ pub async fn upsert_post(mut cx: Context<db::Database>) -> EndpointResult {
         post.date_created = p.date_created;
         post.date_updated = Some("now".into());
     }
-    
-    client.save_post(post)
+
+    let res = client.save_post(post.clone())
         .await
         .map(|p| {
             let body = serde_json::to_string(&p)
@@ -72,6 +77,21 @@ pub async fn upsert_post(mut cx: Context<db::Database>) -> EndpointResult {
                 .body(e.into())
                 .expect("Error generating error response");
             Error::from(res)
-        })?
-    // TODO: add the post to the entry list?
+        })?;
+
+    if draft {
+        return res
+    }
+
+    client.activate_post(post)
+        .await
+        .map_err(|e| {
+            let err = http::Response::builder()
+                .status(StatusCode::NOT_FOUND)
+                .body(e.into())
+                .expect("Error generating error response");
+            Error::from(err)
+        })?;
+
+    res
 }

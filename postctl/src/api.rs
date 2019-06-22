@@ -85,7 +85,7 @@ impl Client {
             })
     }
 
-    pub fn publish(&self, title: &str, post: &str, dry_run: bool, diff: bool) -> Result<(), String> {
+    pub fn publish(&self, title: &str, post: &str, dry_run: bool, diff: bool, draft: bool) -> Result<(), String> {
         if diff {
             let current_post = self.get_post(title).unwrap_or_default();
             let changeset = Changeset::new(&current_post, post, "\n");
@@ -96,7 +96,13 @@ impl Client {
             return Ok(());
         }
 
-        self.post(&format!("posts/{}", title), post.into())
+        let url = if draft {
+            format!("posts/{}?draft=true", title)
+        } else {
+            format!("posts/{}", title)
+        };
+
+        self.post(&url, post.into())
             .map_err(|e| e.to_string())?;
         Ok(())
     }

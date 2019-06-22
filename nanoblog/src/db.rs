@@ -15,7 +15,7 @@ use tokio_threadpool::blocking;
 
 use serde::{Serialize, Deserialize};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Post {
     pub title: String,
     pub body: String,
@@ -100,6 +100,7 @@ impl Database {
         }
     }
 
+    /// Get a `Post`, by its `title`  property.
     pub async fn get_post(&self, title: String) -> Result<Post, String> {
         self.run(move |conn| {
             let x: r2d2_redis::redis::RedisResult<String> = conn.get(title);
@@ -110,6 +111,7 @@ impl Database {
         .map(|contents| serde_json::from_str::<Post>(&contents).unwrap_or_default())
     }
 
+    /// Retrieve the hash mapping post titles to publish dates.
     pub async fn list_posts(&self) -> HashMap<String, String> {
         self.run(move |conn| {
             conn.hgetall("posts")
@@ -118,15 +120,24 @@ impl Database {
         .unwrap_or_default()
     }
 
+    /// Add a post to the index listing by adding it to the hash map storing active posts
+    pub async fn activate_post(&self, post: Post) -> Result<(), String> {
+        self.run(move |conn| conn.hset("posts", post.title, post.date_created))
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    /// Save a json serialized version of a `Post` keyed by the post title
     pub async fn save_post(&self, post: Post) -> Result<(), String> {
         self.run(move |conn| {
-            conn.set::<String, String, String>(
+            conn.set(
                 post.title.clone(),
                 serde_json::to_string(&post).unwrap_or_default()
             )
         })
         .await
-        .map_err(|e| e.to_string())
-        .map(|_| Ok(()))?
+        .map_err(|e| e.to_string())?;
+        Ok(())
     }
 }

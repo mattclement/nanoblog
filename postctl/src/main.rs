@@ -37,6 +37,11 @@ enum Args {
         #[structopt(long = "diff")]
         diff: bool,
 
+        // Upload to blog but don't make visible via the index.
+        // You can go directly to the post to view it.
+        #[structopt(long = "draft")]
+        draft: bool,
+
         title: String,
 
         #[structopt(name = "file")]
@@ -83,11 +88,11 @@ fn main(args: Args) -> Result<(), std::io::Error> {
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
             println!("{}", post);
         },
-        Args::Publish {title, post, dry_run, diff} => {
+        Args::Publish {title, post, dry_run, diff, draft} => {
             let mut buf = String::new();
             let mut file = File::open(post)?;
             file.read_to_string(&mut buf)?;
-            client.publish(&title, &buf, dry_run, diff)
+            client.publish(&title, &buf, dry_run, diff, draft)
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
         },
         Args::Unpublish {dry_run, post} => {
