@@ -893,7 +893,7 @@ dependencies = [
 
 [[package]]
 name = "nanoblog"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "futures 0.1.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures-preview 0.3.0-alpha.16 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1179,7 +1179,7 @@ name = "postctl"
 version = "0.1.0"
 dependencies = [
  "difference 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "nanoblog 0.1.0",
+ "nanoblog 0.1.1",
  "paw 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "reqwest 0.9.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.92 (registry+https://github.com/rust-lang/crates.io-index)",

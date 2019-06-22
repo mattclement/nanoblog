@@ -1,4 +1,4 @@
-replicaCount: 1
+replicaCount: 3
 
 image:
   repository: gcr.io/nanoblog/nanoblog
@@ -25,13 +25,13 @@ ingress:
   annotations:
     kubernetes.io/ingress.class: nginx
   hosts:
-    - host: nanoblog.local
+    - host: mclement.dev
       paths:
         - "/"
   tls:
-   - secretName: chart-example-tls
+   - secretName: mclement-dev-cf-tls
      hosts:
-       - nanoblog.local
+       - mclement.dev
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
