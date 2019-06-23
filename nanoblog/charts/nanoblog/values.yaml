@@ -28,10 +28,14 @@ ingress:
     - host: mclement.dev
       paths:
         - "/"
+    - host: www.mclement.dev
+      paths:
+        - "/"
   tls:
    - secretName: mclement-dev-cf-tls
      hosts:
        - mclement.dev
+       - www.mclement.dev
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
