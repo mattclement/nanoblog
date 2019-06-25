@@ -1,38 +1,16 @@
 #![allow(clippy::needless_lifetimes)]
-extern crate r2d2_redis;
-extern crate tokio;
-
-use std::collections::HashMap;
-use std::ops::Deref;
-
 use r2d2_redis::{r2d2, redis, RedisConnectionManager};
-use crate::db::r2d2_redis::redis::Commands;
 
 use futures01::future::poll_fn;
 use r2d2::{Pool, PooledConnection};
 
 use tokio_threadpool::blocking;
 
-use serde::{Serialize, Deserialize};
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Post {
-    pub title: String,
-    pub body: String,
-    pub date_created: String,
-    pub date_updated: Option<String>,
-}
-
-impl Default for Post {
-    fn default() -> Self {
-        Self {title: "".into(), body: "".into(), date_created: "".into(), date_updated: None}
-    }
-}
-
 pub type ConnectionPool = Pool<RedisConnectionManager>;
 pub type Connection = PooledConnection<RedisConnectionManager>;
 
-
+/// This was modified from
+/// https://github.com/colinbankier/realworld-tide/blob/master/src/db.rs.
 /// A database "repository", for running database workloads.
 /// Manages a connection pool and running blocking tasks in a
 /// way that does not block the tokio event loop.
@@ -82,62 +60,5 @@ impl Database {
         .compat()
         .await
         .expect("Error running async database task.")
-    }
-
-    /// Verify whether the bearer token exists.
-    pub async fn validate_token(self, token: String) -> bool {
-        let exists = self.run(move |conn| {
-            redis::cmd("SISMEMBER")
-                .arg("bearer_tokens")
-                .arg(token)
-                .query::<bool>(conn.deref())
-        })
-        .await;
-
-        match exists {
-            Err(_) => false,
-            Ok(x) => x
-        }
-    }
-
-    /// Get a `Post`, by its `title`  property.
-    pub async fn get_post(&self, title: String) -> Result<Post, String> {
-        self.run(move |conn| {
-            let x: r2d2_redis::redis::RedisResult<String> = conn.get(title);
-            x
-        })
-        .await
-        .map_err(|e| e.to_string())
-        .map(|contents| serde_json::from_str::<Post>(&contents).unwrap_or_default())
-    }
-
-    /// Retrieve the hash mapping post titles to publish dates.
-    pub async fn list_posts(&self) -> HashMap<String, String> {
-        self.run(move |conn| {
-            conn.hgetall("posts")
-        })
-        .await
-        .unwrap_or_default()
-    }
-
-    /// Add a post to the index listing by adding it to the hash map storing active posts
-    pub async fn activate_post(&self, post: Post) -> Result<(), String> {
-        self.run(move |conn| conn.hset("posts", post.title, post.date_created))
-            .await
-            .map_err(|e| e.to_string())?;
-        Ok(())
-    }
-
-    /// Save a json serialized version of a `Post` keyed by the post title
-    pub async fn save_post(&self, post: Post) -> Result<(), String> {
-        self.run(move |conn| {
-            conn.set(
-                post.title.clone(),
-                serde_json::to_string(&post).unwrap_or_default()
-            )
-        })
-        .await
-        .map_err(|e| e.to_string())?;
-        Ok(())
     }
 }
