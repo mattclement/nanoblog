@@ -2,7 +2,7 @@ replicaCount: 3
 
 image:
   repository: gcr.io/nanoblog/nanoblog
-  tag: 0.1.1
+  tag: 0.1.2
   pullPolicy: IfNotPresent
 
 redis:
@@ -25,10 +25,10 @@ ingress:
   annotations:
     kubernetes.io/ingress.class: nginx
   hosts:
-    - host: mclement.local
+    - host: mclement.dev
       paths:
         - "/"
-    - host: www.mclement.local
+    - host: www.mclement.dev
       paths:
         - "/"
   tls:
