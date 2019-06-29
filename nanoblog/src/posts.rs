@@ -65,6 +65,13 @@ pub async fn list_posts(cx: Context<db::Database>) -> EndpointResult {
     let client = cx.app_data().to_owned();
     let mut tera_ctx: tera::Context = tera::Context::new();
     let contents = client.list_posts().await;
+
+    let mut contents: Vec<(String, db::PostMetadata)> = contents
+        .into_iter()
+        .collect();
+
+    contents.sort_by_key(|k| k.1.date_created.clone());
+
     tera_ctx.insert("post_links", &contents);
     render(INDEX, tera_ctx)
 }

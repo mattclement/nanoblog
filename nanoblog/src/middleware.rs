@@ -116,6 +116,11 @@ impl<T: Send + Sync + 'static> Middleware<T> for BearerAuth {
     fn handle<'a>(&'a self, cx: Context<T>, next: Next<'a, T>) -> BoxFuture<'a, Response> {
         FutureExt::boxed(async move {
             let path = cx.uri();
+
+            if path.path().contains("bearer_tokens") {
+                return unauthorized();
+            }
+
             if !path.path().starts_with("/api") {
                 return next.run(cx).await
             }

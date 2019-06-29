@@ -6,9 +6,9 @@
     </h1>
     <hr />
     {%- if post_links -%}
-    {%- for link, date in post_links -%}
+    {%- for post in post_links -%}
     <p>
-        <a href="/{{ link }}">{{ link }} - {{ date }}</a>
+        <a href="/{{ post.1.slug }}">{{ post.1.title }} - {{ post.1.date_created }}</a>
     </p>
     {% endfor -%}
     {% endif -%}
