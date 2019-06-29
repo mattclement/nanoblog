@@ -33,8 +33,8 @@ fn main() -> Result<(), std::io::Error> {
     app.at("/api").nest(|router| {
         router.at("/ping").get(async move |_| "OK\n");
         router.at("/posts").get(api::list_posts);
+        router.at("/posts").post(api::upsert_post);
         router.at("/posts/:post").get(api::get_raw_post);
-        router.at("/posts/:post").post(api::upsert_post);
     });
 
     app.at("/_health")

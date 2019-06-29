@@ -89,7 +89,7 @@ pub async fn get_post(cx: Context<db::Database>) -> EndpointResult {
     }
     let contents = contents.unwrap();
 
-    tera_ctx.insert("title", &title);
+    tera_ctx.insert("title", &contents.title);
     tera_ctx.insert("date_created", &contents.date_created);
     tera_ctx.insert("body", &render_markdown(&contents.body));
     render(POST, tera_ctx)

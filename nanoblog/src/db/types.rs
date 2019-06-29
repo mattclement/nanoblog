@@ -1,3 +1,5 @@
+use chrono::Local;
+use slug::slugify;
 use serde::{Serialize, Deserialize};
 use r2d2_redis::redis::{
     Value,
@@ -8,6 +10,11 @@ use r2d2_redis::redis::{
     ErrorKind,
 };
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct NewPost {
+    pub title: String,
+    pub body: String,
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Post {
@@ -16,6 +23,18 @@ pub struct Post {
     pub body: String,
     pub date_created: String,
     pub date_updated: Option<String>,
+}
+
+impl From<NewPost> for Post {
+    fn from(post: NewPost) -> Self {
+        Self {
+            slug: slugify(&post.title),
+            title: post.title,
+            body: post.body,
+            date_created: Local::today().format("%F").to_string(),
+            date_updated: None,
+        }
+    }
 }
 
 impl Default for Post {

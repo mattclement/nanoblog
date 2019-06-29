@@ -3,7 +3,6 @@ use crate::db;
 use http::status::StatusCode;
 use tide::error::ResultExt;
 use chrono::Local;
-use slug::slugify;
 
 pub async fn list_posts(cx: Context<db::Database>) -> EndpointResult {
     let client = cx.app_data().to_owned();
@@ -43,23 +42,15 @@ pub async fn get_raw_post(cx: Context<db::Database>) -> EndpointResult {
 
 pub async fn upsert_post(mut cx: Context<db::Database>) -> EndpointResult {
     let client = cx.app_data().to_owned();
-    let title: String = cx.param("post").client_err()?;
-    let body = cx.body_string().await.client_err()?;
+    let post = cx.body_json::<db::NewPost>().await.client_err()?;
     let now = Local::today().format("%F").to_string();
 
     let draft = cx.uri().query()
         .unwrap_or_default()
         .contains("draft=true");
 
-    let mut post = db::Post {
-        slug: slugify(&title),
-        title: title.clone(),
-        body,
-        date_created: now.clone(),
-        date_updated: None,
-    };
-
-    if let Ok(p) = client.get_post(title).await {
+    let mut post: db::Post = post.into();
+    if let Ok(p) = client.get_post(post.slug.clone()).await {
         post.date_created = p.date_created;
         post.date_updated = Some(now);
     }

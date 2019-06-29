@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use difference::Changeset;
 extern crate nanoblog;
-use nanoblog::Post;
+use nanoblog::{NewPost, Post};
 
 pub struct Client {
     host: String,
@@ -49,12 +49,12 @@ impl Client {
             .send()
     }
 
-    pub fn get_post(&self, post: &str) -> Result<String, String> {
+    pub fn get_post(&self, post: &str) -> Result<Post, String> {
         self.get(&format!("posts/{}", post))
             .map_err(|e| e.to_string())
             .map(|mut r| {
                 let p: Post = r.json().unwrap_or_default();
-                Ok(p.body)
+                Ok(p)
             })?
     }
 
@@ -85,10 +85,10 @@ impl Client {
             })
     }
 
-    pub fn publish(&self, title: &str, post: &str, dry_run: bool, diff: bool, draft: bool) -> Result<(), String> {
+    pub fn publish(&self, title: &str, body: &str, dry_run: bool, diff: bool, draft: bool) -> Result<(), String> {
         if diff {
             let current_post = self.get_post(title).unwrap_or_default();
-            let changeset = Changeset::new(&current_post, post, "\n");
+            let changeset = Changeset::new(&current_post.body, body, "\n");
             println!("{}", changeset);
         }
         if dry_run {
@@ -97,12 +97,17 @@ impl Client {
         }
 
         let url = if draft {
-            format!("posts/{}?draft=true", title)
+            "posts?draft=true"
         } else {
-            format!("posts/{}", title)
+            "posts"
         };
 
-        self.post(&url, post.into())
+        let post = NewPost {
+            title: title.into(),
+            body: body.into(),
+        };
+
+        self.post(&url, serde_json::to_string(&post).unwrap())
             .map_err(|e| e.to_string())?;
         Ok(())
     }

@@ -86,7 +86,7 @@ fn main(args: Args) -> Result<(), std::io::Error> {
         Args::Get {title} => {
             let post = client.get_post(&title)
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
-            println!("{}", post);
+            println!("{:?}", post);
         },
         Args::Publish {title, post, dry_run, diff, draft} => {
             let mut buf = String::new();
